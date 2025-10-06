@@ -86,27 +86,29 @@ const CONFIG = {
     displayHoursStart: 8,                   // Hourly forecast start
     displayHoursEnd: 19,                    // Hourly forecast end
     forecastDays: 3,                        // Number of weekdays to show
-    pageHeading: 'Hourly Weather Forecast', // <h1> text
+    pageHeading: 'Hourly Weather Forecast', // Default <h1> text
 };
 // =======================================================
 
-document.getElementById('page-heading').textContent = CONFIG.pageHeading;
-
-// Read lat/lon from URL parameters
+// Read URL parameters
 const params = new URLSearchParams(window.location.search);
 const LATITUDE = parseFloat(params.get('lat'));
 const LONGITUDE = parseFloat(params.get('lon'));
+const HEADING = params.get('heading') || CONFIG.pageHeading;
 
 // Require latitude and longitude
 if (isNaN(LATITUDE) || isNaN(LONGITUDE)) {
     document.getElementById('forecast-container').innerHTML = `
         <div class="error">
             Error: Latitude and Longitude are required in the URL.<br>
-            Example: ?lat=-27.4&lon=152.9
+            Example: ?lat=-27.4&lon=152.9&heading=My%20Weather%20Forecast
         </div>
     `;
     throw new Error("Latitude and Longitude required in URL parameters");
 }
+
+// Set the page heading
+document.getElementById('page-heading').textContent = HEADING;
 
 const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&daily=temperature_2m_max,temperature_2m_min&hourly=temperature_2m,precipitation_probability&timezone=${encodeURIComponent(CONFIG.timezone)}`;
 
