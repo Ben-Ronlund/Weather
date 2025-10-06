@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weather Forecast</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(to bottom, #e0f7fa, #ffffff);
+        color: #333;
+        margin: 0;
+        padding: 20px;
+    }
+
+    h1 {
+        text-align: center;
+        color: #00796b;
+        margin-bottom: 20px;
+    }
+
+    .error {
+        text-align: center;
+        color: red;
+        font-weight: bold;
+        margin-top: 50px;
+    }
+
+    .card {
+        background-color: #ffffff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 15px;
+    }
+
+    .daily-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 1em;
+        margin-bottom: 10px;
+    }
+
+    .daily-header span {
+        margin-left: 10px;
+    }
+
+    .hourly-row {
+        display: flex;
+        overflow-x: auto;
+        gap: 8px;
+        padding-top: 5px;
+    }
+
+    .hour {
+        background-color: #e0f2f1;
+        border-radius: 8px;
+        padding: 8px;
+        min-width: 70px;
+        text-align: center;
+        flex-shrink: 0;
+        font-size: 0.8em;
+    }
+
+    .hour p {
+        margin: 2px 0;
+    }
+
+    .hour-time {
+        font-weight: bold;
+        font-size: 0.85em;
+    }
+</style>
+</head>
+<body>
+
+<h1 id="page-heading">Weather Forecast</h1>
+<div id="forecast-container"></div>
+
+<script>
+// ================= USER-DEFINED VARIABLES =================
+const CONFIG = {
+    timezone: 'Australia/Brisbane',        // Timezone
+    skipWeekends: true,                     // Skip weekends
+    displayHoursStart: 8,                   // Hourly forecast start
+    displayHoursEnd: 19,                    // Hourly forecast end
+    forecastDays: 3,                        // Number of weekdays to show
+    pageHeading: 'Hourly Weather Forecast', // <h1> text
+};
+// =======================================================
+
+document.getElementById('page-heading').textContent = CONFIG.pageHeading;
+
+// Read lat/lon from URL parameters
+const params = new URLSearchParams(window.location.search);
+const LATITUDE = parseFloat(params.get('lat'));
+const LONGITUDE = parseFloat(params.get('lon'));
+
+// Require latitude and longitude
+if (isNaN(LATITUDE) || isNaN(LONGITUDE)) {
+    document.getElementById('forecast-container').innerHTML = `
+        <div class="error">
+            Error: Latitude and Longitude are required in the URL.<br>
+            Example: ?lat=-27.4&lon=152.9
+        </div>
+    `;
+    throw new Error("Latitude and Longitude required in URL parameters");
+}
+
+const url = `https://api.open-meteo.com/v1/forecast?latitude=${LATITUDE}&longitude=${LONGITUDE}&daily=temperature_2m_max,temperature_2m_min&hourly=temperature_2m,precipitation_probability&timezone=${encodeURIComponent(CONFIG.timezone)}`;
+
+fetch(url)
+    .then(response => response.json())
+    .then(data => {
+        const container = document.getElementById('forecast-container');
+        container.innerHTML = '';
+
+        let shownDays = 0;
+
+        for (let d = 0; d < data.daily.time.length && shownDays < CONFIG.forecastDays; d++) {
+            const date = new Date(data.daily.time[d]);
+            const dayOfWeek = date.getDay();
+
+            if (CONFIG.skipWeekends && (dayOfWeek === 0 || dayOfWeek === 6)) continue;
+
+            const dayName = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+            const maxTemp = data.daily.temperature_2m_max[d];
+            const minTemp = data.daily.temperature_2m_min[d];
+
+            let dailyCard = document.createElement('div');
+            dailyCard.className = 'card daily';
+            dailyCard.innerHTML = `
+                <div class="daily-header">
+                    <strong>${dayName}</strong>
+                    <span>🌡 ${maxTemp}° / ${minTemp}°</span>
+                </div>
+            `;
+
+            let hourlyRow = document.createElement('div');
+            hourlyRow.className = 'hourly-row';
+
+            data.hourly.time.forEach((timeStr, i) => {
+                const time = new Date(timeStr);
+                const hour = time.getHours();
+                if (time.toDateString() === date.toDateString() &&
+                    hour >= CONFIG.displayHoursStart && hour <= CONFIG.displayHoursEnd) {
+                    let hourDiv = document.createElement('div');
+                    hourDiv.className = 'hour';
+                    hourDiv.innerHTML = `
+                        <p class="hour-time">${hour}:00</p>
+                        <p>🌡 ${data.hourly.temperature_2m[i]}°</p>
+                        <p>🌧 ${data.hourly.precipitation_probability[i]}%</p>
+                    `;
+                    hourlyRow.appendChild(hourDiv);
+                }
+            });
+
+            dailyCard.appendChild(hourlyRow);
+            container.appendChild(dailyCard);
+
+            shownDays++;
+        }
+    })
+    .catch(error => console.error('Error fetching weather data:', error));
+</script>
+
+<a href="https://open-meteo.com/">Weather data by Open-Meteo.com</a>
+</body>
+</html>
