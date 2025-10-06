@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Everton Park Weather</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1, h2 { margin-bottom: 10px; }
+        p { margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <h1>Everton Park Weather</h1>
+
+    <div id="daily-forecast"></div>
+    <div id="hourly-forecast"></div>
+
+    <script>
+        const url = 'https://api.open-meteo.com/v1/forecast?latitude=-27.4081701&longitude=152.9975171&daily=temperature_2m_max,temperature_2m_min&hourly=temperature_2m,precipitation_probability&timezone=Australia%2FBrisbane';
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                // Today's high and low
+                const todayMax = data.daily.temperature_2m_max[0];
+                const todayMin = data.daily.temperature_2m_min[0];
+                document.getElementById('daily-forecast').innerHTML = `
+                    <h2>Today's Forecast</h2>
+                    <p>High: ${todayMax}°C</p>
+                    <p>Low: ${todayMin}°C</p>
+                `;
+
+                // Next 3 hours
+                let hourlyHTML = '<h2>Next 3 Hours</h2>';
+                for (let i = 0; i < 3; i++) {
+                    const time = new Date(data.hourly.time[i]);
+                    hourlyHTML += `
+                        <p>${time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} — Temp: ${data.hourly.temperature_2m[i]}°C, Rain Chance: ${data.hourly.precipitation_probability[i]}%</p>
+                    `;
+                }
+                document.getElementById('hourly-forecast').innerHTML = hourlyHTML;
+            })
+            .catch(error => console.error('Error fetching weather data:', error));
+    </script>
+</body>
+</html>
