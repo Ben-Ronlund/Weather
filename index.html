@@ -3,123 +3,93 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Everton Park Weather</title>
+<title>EPSHS Weather</title>
 <style>
-    body {
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        background: linear-gradient(to bottom, #e0f7fa, #ffffff);
-        color: #333;
-        margin: 0;
-        padding: 20px;
-    }
-
-    h1 {
-        text-align: center;
-        color: #00796b;
-        margin-bottom: 30px;
-    }
-
-    .card {
-        background-color: #ffffff;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-
-    .daily p {
-        font-size: 1.2em;
-        margin: 8px 0;
-    }
-
-    .hourly-row {
-        display: flex;
-        overflow-x: auto;
-        padding-top: 10px;
-        gap: 10px;
-    }
-
-    .hour {
-        background-color: #e0f2f1;
-        border-radius: 10px;
-        padding: 10px;
-        min-width: 80px;
-        text-align: center;
-        flex-shrink: 0;
-    }
-
-    .hour p {
-        margin: 5px 0;
-        font-size: 0.9em;
-    }
-
-    .hour-time {
-        font-weight: bold;
-    }
+body{
+    font-family:'Segoe UI',sans-serif;
+    background:linear-gradient(to bottom,#e0f7fa,#fff);
+    color:#333;
+    margin:0;
+    padding:10px;
+}
+h1{
+    text-align:center;
+    color:#00796b;
+    margin:10px 0;
+    font-size:1.5em;
+}
+.card{
+    background:#fff;
+    box-shadow:0 1px 4px rgba(0,0,0,.1);
+    border-radius:10px;
+    padding:8px;
+    margin-bottom:10px;
+}
+.daily-header{
+    display:flex;
+    justify-content:space-between;
+    font-size:.9em;
+    margin-bottom:5px;
+}
+.hourly-row{
+    display:flex;
+    overflow-x:auto;
+    gap:4px;
+    margin-bottom:4px;
+}
+.hour{
+    background:#e0f2f1;
+    border-radius:6px;
+    padding:5px;
+    min-width:55px;
+    text-align:center;
+    flex-shrink:0;
+    font-size:.7em;
+}
+.hour p{margin:2px 0;}
+.hour-time{font-weight:bold;font-size:.75em;}
+.period-label{
+    font-size:.75em;
+    font-weight:bold;
+    margin:3px 0 2px;
+}
 </style>
 </head>
 <body>
-
-<h1>Everton Park Weather</h1>
+<h1>EPSHS Weather</h1>
 <div id="forecast-container"></div>
-
 <script>
-const url = 'https://api.open-meteo.com/v1/forecast?latitude=-27.4081701&longitude=152.9975171&daily=temperature_2m_max,temperature_2m_min&hourly=temperature_2m,precipitation_probability&timezone=Australia%2FBrisbane';
+const url='https://api.open-meteo.com/v1/forecast?latitude=-27.4081701&longitude=152.9975171&daily=temperature_2m_max,temperature_2m_min&hourly=temperature_2m,precipitation_probability&timezone=Australia%2FBrisbane';
 
-fetch(url)
-    .then(response => response.json())
-    .then(data => {
-        const container = document.getElementById('forecast-container');
-        container.innerHTML = '';
-
-        let shownDays = 0;
-
-        for (let d = 0; d < data.daily.time.length && shownDays < 3; d++) {
-            const date = new Date(data.daily.time[d]);
-            const dayOfWeek = date.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-
-            if (dayOfWeek === 0 || dayOfWeek === 6) continue; // skip weekends
-
-            const dayName = date.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'short' });
-            const maxTemp = data.daily.temperature_2m_max[d];
-            const minTemp = data.daily.temperature_2m_min[d];
-
-            // Daily card
-            let dailyCard = document.createElement('div');
-            dailyCard.className = 'card daily';
-            dailyCard.innerHTML = `
-                <h2>${dayName}</h2>
-                <p>🌡 High: ${maxTemp}°C</p>
-                <p>🌡 Low: ${minTemp}°C</p>
-            `;
-
-            // Hourly row 9AM-3PM
-            let hourlyRow = document.createElement('div');
-            hourlyRow.className = 'hourly-row';
-
-            data.hourly.time.forEach((timeStr, i) => {
-                const time = new Date(timeStr);
-                const hour = time.getHours();
-                if (time.toDateString() === date.toDateString() && hour >= 9 && hour <= 15) {
-                    let hourDiv = document.createElement('div');
-                    hourDiv.className = 'hour';
-                    hourDiv.innerHTML = `
-                        <p class="hour-time">${time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</p>
-                        <p>🌡 ${data.hourly.temperature_2m[i]}°C</p>
-                        <p>🌧 ${data.hourly.precipitation_probability[i]}%</p>
-                    `;
-                    hourlyRow.appendChild(hourDiv);
+fetch(url).then(r=>r.json()).then(d=>{
+    const container=document.getElementById('forecast-container');
+    let shown=0;
+    for(let i=0;i<d.daily.time.length&&shown<3;i++){
+        let date=new Date(d.daily.time[i]);
+        if([0,6].includes(date.getDay())) continue; // skip weekends
+        let dayName=date.toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'});
+        let card=document.createElement('div'); card.className='card';
+        card.innerHTML=`<div class="daily-header"><strong>${dayName}</strong><span>🌡 ${d.daily.temperature_2m_max[i]}° / ${d.daily.temperature_2m_min[i]}°</span></div>`;
+        
+        ['Morning','Afternoon'].forEach((period,j)=>{
+            let row=document.createElement('div'); row.className='hourly-row';
+            let label=document.createElement('div'); label.className='period-label'; label.textContent=period;
+            card.appendChild(label);
+            d.hourly.time.forEach((t,idx)=>{
+                let h=new Date(t).getHours();
+                let sameDay=new Date(t).toDateString()===date.toDateString();
+                if(!sameDay) return;
+                if(j===0&&h>=8&&h<=12 || j===1&&h>=13&&h<=17){
+                    let div=document.createElement('div'); div.className='hour';
+                    div.innerHTML=`<p class="hour-time">${h}:00</p><p>🌡 ${d.hourly.temperature_2m[idx]}°</p><p>🌧 ${d.hourly.precipitation_probability[idx]}%</p>`;
+                    row.appendChild(div);
                 }
             });
-
-            dailyCard.appendChild(hourlyRow);
-            container.appendChild(dailyCard);
-
-            shownDays++;
-        }
-    })
-    .catch(error => console.error('Error fetching weather data:', error));
+            card.appendChild(row);
+        });
+        container.appendChild(card); shown++;
+    }
+}).catch(e=>console.error(e));
 </script>
-
 </body>
 </html>
